@@ -1,0 +1,15 @@
+﻿# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# JMeter
+*.log
+jmeter.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large result dirs (giữ .jtl nhưng bỏ node_modules nếu có)
+node_modules/
