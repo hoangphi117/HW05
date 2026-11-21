@@ -1,13 +1,13 @@
-# run_scenario.ps1 — HW05 Agent Skill
-# Chạy JMeter non-GUI cho một scenario và sinh HTML report
+﻿# run_scenario.ps1 - HW05 Agent Skill
+# Chay JMeter non-GUI cho mot scenario va sinh HTML report
 #
 # Usage:
 #   .\run_scenario.ps1 -Scenario load   -StudentID 22127001 -Date 20261116
 #   .\run_scenario.ps1 -Scenario stress -StudentID 22127001 -Date 20261116 -JMeterHome "C:\jmeter"
 #
 # Prerequisites:
-#   - JMeter cài đặt và JMETER_HOME được set, hoặc truyền -JMeterHome
-#   - Backend EShop đang chạy tại http://localhost:3000
+#   - JMeter cai dat va JMETER_HOME duoc set, hoac truyen -JMeterHome
+#   - Backend EShop dang chay tai http://localhost:3000
 
 param(
     [Parameter(Mandatory=$true)]
@@ -24,7 +24,7 @@ param(
     [string]$BaseDir = (Resolve-Path "$PSScriptRoot\..\..\..").Path
 )
 
-# ── Resolve paths ─────────────────────────────────────────────────────────────
+#    Resolve paths                                                              
 $ScenarioCapitalized = (Get-Culture).TextInfo.ToTitleCase($Scenario)
 $PlanName  = "${StudentID}_${ScenarioCapitalized}_${Date}"
 $JmxFile   = "$BaseDir\test-plans\$PlanName.jmx"
@@ -32,81 +32,81 @@ $JtlFile   = "$BaseDir\results\$Scenario\$PlanName.jtl"
 $HtmlDir   = "$BaseDir\results\$Scenario\html-report"
 $LogFile   = "$BaseDir\results\$Scenario\jmeter_${PlanName}.log"
 
-# ── Kiểm tra JMeter ───────────────────────────────────────────────────────────
+#    Kiem tra JMeter                                                            
 if (-not $JMeterHome) {
     if (Test-Path "D:\Downloads\apache-jmeter-5.6.3\bin\jmeter.bat") {
         $JMeterHome = "D:\Downloads\apache-jmeter-5.6.3"
         $JMeterBin  = "$JMeterHome\bin\jmeter.bat"
     } else {
-        # Thử tìm jmeter trong PATH
+        # Thu tim jmeter trong PATH
         $jmeterCmd = Get-Command jmeter -ErrorAction SilentlyContinue
         if ($jmeterCmd) {
             $JMeterBin = "jmeter"
         } else {
-            Write-Error "❌ JMeter not found. Set JMETER_HOME env var hoặc truyền -JMeterHome"
+            Write-Error "[ERR] JMeter not found. Set JMETER_HOME env var hoac truyen -JMeterHome"
             exit 1
         }
     }
 } else {
     $JMeterBin = "$JMeterHome\bin\jmeter.bat"
     if (-not (Test-Path $JMeterBin)) {
-        Write-Error "❌ JMeter not found at: $JMeterBin"
+        Write-Error "[ERR] JMeter not found at: $JMeterBin"
         exit 1
     }
 }
 
-# ── Kiểm tra JMX file ─────────────────────────────────────────────────────────
+#    Kiem tra JMX file                                                          
 if (-not (Test-Path $JmxFile)) {
-    Write-Error "❌ Test plan not found: $JmxFile"
-    Write-Host "   Chạy generate_jmx.py trước:"
+    Write-Error "[ERR] Test plan not found: $JmxFile"
+    Write-Host "   Chay generate_jmx.py truoc:"
     Write-Host "   python scripts\generate_jmx.py --scenario $Scenario --student-id $StudentID --date $Date"
     exit 1
 }
 
-# ── Kiểm tra SUT đang chạy ────────────────────────────────────────────────────
-Write-Host "`n🔍 Checking SUT availability at http://localhost:3000 ..."
+#    Kiem tra SUT dang chay                                                     
+Write-Host "`n[*] Checking SUT availability at http://localhost:3000 ..."
 try {
     $response = Invoke-WebRequest -Uri "http://localhost:3000/api/products" `
                                   -Method GET -TimeoutSec 5 -ErrorAction Stop
-    Write-Host "✅ SUT is running (HTTP $($response.StatusCode))"
+    Write-Host "[OK] SUT is running (HTTP $($response.StatusCode))"
 } catch {
-    Write-Warning "⚠  Cannot reach http://localhost:3000/api/products"
-    Write-Warning "   Hãy chắc chắn backend EShop đang chạy trước khi test!"
-    $confirm = Read-Host "Tiếp tục anyway? (y/N)"
+    Write-Warning "[!]  Cannot reach http://localhost:3000/api/products"
+    Write-Warning "   Hay chac chan backend EShop dang chay truoc khi test!"
+    $confirm = Read-Host "Tiep tuc anyway? (y/N)"
     if ($confirm -ne "y") { exit 1 }
 }
 
-# ── Tạo output directories ────────────────────────────────────────────────────
+#    Tao output directories                                                     
 New-Item -ItemType Directory -Path "$BaseDir\results\$Scenario" -Force | Out-Null
 New-Item -ItemType Directory -Path $HtmlDir -Force | Out-Null
 
-# ── Clean HTML report cũ ─────────────────────────────────────────────────────
+#    Clean HTML report cu                                                      
 if (Test-Path "$HtmlDir\index.html") {
     Remove-Item "$HtmlDir\*" -Recurse -Force
-    Write-Host "🗑  Cleaned old HTML report at $HtmlDir"
+    Write-Host "[DEL]  Cleaned old HTML report at $HtmlDir"
 }
 
-# ── Banner ────────────────────────────────────────────────────────────────────
+#    Banner                                                                     
 Write-Host ""
-Write-Host "═" * 60
-Write-Host "  🚀 Running JMeter — $($Scenario.ToUpper()) Scenario"
+Write-Host "=" * 60
+Write-Host "  [RUN] Running JMeter - $($Scenario.ToUpper()) Scenario"
 Write-Host "  Plan    : $PlanName"
 Write-Host "  JMX     : $JmxFile"
 Write-Host "  JTL     : $JtlFile"
 Write-Host "  Report  : $HtmlDir"
-Write-Host "═" * 60
+Write-Host "=" * 60
 Write-Host ""
-Write-Host "  ⚠  NHẮC NHỞ:"
-Write-Host "  □ Mở Task Manager NGAY BÂY để quan sát CPU/RAM"
-Write-Host "  □ Chuẩn bị chụp màn hình: tool + Task Manager cùng frame"
-Write-Host "  □ Với Stress/Spike: chuẩn bị reset lockout nếu cần"
+Write-Host "  [!]  NHAC NHO:"
+Write-Host "  [ ] Mo Task Manager NGAY BAY de quan sat CPU/RAM"
+Write-Host "  [ ] Chuan bi chup man hinh: tool + Task Manager cung frame"
+Write-Host "  [ ] Voi Stress/Spike: chuan bi reset lockout neu can"
 Write-Host ""
 
 $startTime = Get-Date
-Write-Host "⏱  Started at: $($startTime.ToString('HH:mm:ss'))"
+Write-Host "[TIME]  Started at: $($startTime.ToString('HH:mm:ss'))"
 Write-Host ""
 
-# ── Chạy JMeter ───────────────────────────────────────────────────────────────
+#    Chay JMeter                                                                
 $jmeterArgs = @(
     "-n",                        # Non-GUI mode
     "-t", $JmxFile,              # Test plan
@@ -138,31 +138,31 @@ $endTime  = Get-Date
 $duration = ($endTime - $startTime).TotalSeconds
 
 Write-Host ""
-Write-Host "═" * 60
+Write-Host "=" * 60
 if ($exitCode -eq 0) {
-    Write-Host "  ✅ JMeter finished successfully"
+    Write-Host "  [OK] JMeter finished successfully"
 } else {
-    Write-Host "  ⚠  JMeter exited with code $exitCode (check $LogFile)"
+    Write-Host "  [!]  JMeter exited with code $exitCode (check $LogFile)"
 }
-Write-Host "  ⏱  Duration: $([math]::Round($duration, 1)) seconds"
-Write-Host "  📄 JTL log : $JtlFile"
-Write-Host "  📊 Report  : $HtmlDir\index.html"
-Write-Host "═" * 60
+Write-Host "  [TIME]  Duration: $([math]::Round($duration, 1)) seconds"
+Write-Host "  [JTL] JTL log : $JtlFile"
+Write-Host "  [HTML] Report  : $HtmlDir\index.html"
+Write-Host "=" * 60
 Write-Host ""
 
-# ── Quick analysis ────────────────────────────────────────────────────────────
+#    Quick analysis                                                             
 if (Test-Path $JtlFile) {
-    Write-Host "🔍 Running quick JTL analysis..."
+    Write-Host "[*] Running quick JTL analysis..."
     $analyzePy = "$PSScriptRoot\analyze_jtl.py"
     if (Test-Path $analyzePy) {
         python $analyzePy --file $JtlFile
     }
     Write-Host ""
-    Write-Host "📋 Next steps:"
-    Write-Host "   1. Chụp màn hình Task Manager + JMeter cùng frame"
-    Write-Host "   2. Mở HTML report: $HtmlDir\index.html"
+    Write-Host "[TODO] Next steps:"
+    Write-Host "   1. Chup man hinh Task Manager + JMeter cung frame"
+    Write-Host "   2. Mo HTML report: $HtmlDir\index.html"
     Write-Host "   3. Git commit:"
     Write-Host "      git add test-plans\ results\$Scenario\ screenshots\"
-    Write-Host "      git commit -m `"test($Scenario): run $ScenarioCapitalized scenario — $PlanName`""
+    Write-Host "      git commit -m 'test($Scenario): run $ScenarioCapitalized scenario - $PlanName'"
 }
 
